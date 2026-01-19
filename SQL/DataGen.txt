@@ -1,0 +1,153 @@
+🔢 STEP 1: Helper Numbers Table (Data Generator)
+
+This is a standard enterprise technique.
+
+WITH Numbers AS (
+    SELECT TOP (300)
+           ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
+    FROM sys.objects
+)
+SELECT * INTO #Numbers FROM Numbers;
+
+
+Temporary table #Numbers now has 1–300.
+
+🏢 STEP 2: Insert 300 Branches
+INSERT INTO Branches (BranchID, BranchName, City, State)
+SELECT
+    n,
+    CONCAT('Branch_', n),
+    CONCAT('City_', n % 20),
+    CONCAT('State_', n % 10)
+FROM #Numbers;
+
+
+✔ 300 branches
+✔ Realistic geo spread
+
+👤 STEP 3: Insert 300 Customers
+INSERT INTO Customers (
+    CustomerID,
+    FirstName,
+    LastName,
+    DOB,
+    Gender,
+    City,
+    State,
+    CreditScore,
+    CustomerSince
+)
+SELECT
+    n,
+    CONCAT('FirstName_', n),
+    CONCAT('LastName_', n),
+    DATEADD(YEAR, -25 - (n % 30), GETDATE()),
+    CASE WHEN n % 2 = 0 THEN 'M' ELSE 'F' END,
+    CONCAT('City_', n % 20),
+    CONCAT('State_', n % 10),
+    500 + (n % 300),
+    DATEADD(YEAR, -(n % 10), GETDATE())
+FROM #Numbers;
+
+
+✔ Credit scores: 500–800
+✔ Customer tenure simulated
+
+🏦 STEP 4: Insert 300 Accounts
+INSERT INTO Accounts (
+    AccountID,
+    CustomerID,
+    BranchID,
+    AccountType,
+    Balance,
+    OpenDate,
+    Status
+)
+SELECT
+    n,
+    n,                         -- 1 account per customer
+    (n % 300) + 1,
+    CASE 
+        WHEN n % 3 = 0 THEN 'Savings'
+        WHEN n % 3 = 1 THEN 'Current'
+        ELSE 'Salary'
+    END,
+    10000 + (n * 500),
+    DATEADD(YEAR, -(n % 5), GETDATE()),
+    CASE WHEN n % 10 = 0 THEN 'Inactive' ELSE 'Active' END
+FROM #Numbers;
+
+
+✔ Balance grows realistically
+✔ Active/Inactive mix
+
+💳 STEP 5: Insert 3000+ Transactions (IMPORTANT)
+
+Banks never have 1 transaction per account.
+So we generate 10 transactions per account → 3000 rows.
+
+INSERT INTO Transactions (
+    TransactionID,
+    AccountID,
+    TransactionDate,
+    TransactionType,
+    Amount,
+    Channel
+)
+SELECT
+    (a.n * 10) + b.n AS TransactionID,
+    a.n AS AccountID,
+    DATEADD(DAY, -b.n, GETDATE()),
+    CASE WHEN b.n % 2 = 0 THEN 'Credit' ELSE 'Debit' END,
+    500 + (b.n * 50),
+    CASE 
+        WHEN b.n % 4 = 0 THEN 'ATM'
+        WHEN b.n % 4 = 1 THEN 'UPI'
+        WHEN b.n % 4 = 2 THEN 'Online'
+        ELSE 'Branch'
+    END
+FROM #Numbers a
+CROSS JOIN (
+    SELECT TOP 10 ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
+    FROM sys.objects
+) b;
+
+
+✔ 3000 transactions
+✔ Multiple channels
+✔ Debit/Credit mix
+✔ Time-series ready
+
+🔥 This is interview gold
+
+🏠 STEP 6: Insert 300 Loans
+INSERT INTO Loans (
+    LoanID,
+    CustomerID,
+    LoanType,
+    LoanAmount,
+    InterestRate,
+    StartDate,
+    EndDate,
+    LoanStatus
+)
+SELECT
+    n,
+    n,
+    CASE 
+        WHEN n % 3 = 0 THEN 'Home Loan'
+        WHEN n % 3 = 1 THEN 'Personal Loan'
+        ELSE 'Car Loan'
+    END,
+    200000 + (n * 10000),
+    7.5 + (n % 5),
+    DATEADD(YEAR, -2, GETDATE()),
+    DATEADD(YEAR, 8, GETDATE()),
+    CASE WHEN n % 5 = 0 THEN 'Closed' ELSE 'Active' END
+FROM #Numbers;
+
+
+✔ Multiple loan types
+✔ Active vs closed loans
+✔ Risk analytics ready
+
