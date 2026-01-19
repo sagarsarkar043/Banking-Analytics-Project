@@ -1,0 +1,140 @@
+--BankingAnalytics – Database & Table Creation (DDL)
+--Create Database
+CREATE DATABASE BankingAnalytics;
+USE BankingAnalytics;
+
+--Branches Table
+
+--Represents bank branches (Master data)
+
+CREATE TABLE Branches (
+    BranchID INT NOT NULL,
+    BranchName VARCHAR(100) NOT NULL,
+    City VARCHAR(50) NOT NULL,
+    State VARCHAR(50) NOT NULL,
+
+    CONSTRAINT PK_Branches PRIMARY KEY (BranchID)
+);
+
+
+--Customers Table
+
+--Customer master (CIF – Customer Information File)
+
+CREATE TABLE Customers (
+    CustomerID INT NOT NULL,
+    FirstName VARCHAR(50) NOT NULL,
+    LastName VARCHAR(50) NOT NULL,
+    DOB DATE NOT NULL,
+    Gender CHAR(1) CHECK (Gender IN ('M', 'F')),
+    City VARCHAR(50),
+    State VARCHAR(50),
+    CreditScore INT CHECK (CreditScore BETWEEN 300 AND 900),
+    CustomerSince DATE NOT NULL,
+
+    CONSTRAINT PK_Customers PRIMARY KEY (CustomerID)
+);
+
+
+--Credit score validation and Banking-realistic constraints
+
+--Accounts Table
+
+--CASA / Salary / Current accounts
+
+CREATE TABLE Accounts (
+    AccountID INT NOT NULL,
+    CustomerID INT NOT NULL,
+    BranchID INT NOT NULL,
+    AccountType VARCHAR(20) CHECK (AccountType IN ('Savings', 'Current', 'Salary')),
+    Balance DECIMAL(18,2) NOT NULL CHECK (Balance >= 0),
+    OpenDate DATE NOT NULL,
+    Status VARCHAR(10) CHECK (Status IN ('Active', 'Inactive')),
+
+    CONSTRAINT PK_Accounts PRIMARY KEY (AccountID),
+    CONSTRAINT FK_Accounts_Customers FOREIGN KEY (CustomerID)
+        REFERENCES Customers(CustomerID),
+    CONSTRAINT FK_Accounts_Branches FOREIGN KEY (BranchID)
+        REFERENCES Branches(BranchID)
+);
+
+
+--Referential integrity,Balance cannot be negative,Core banking realism
+
+--Transactions Table
+
+--Transaction processing system (TPS)
+
+CREATE TABLE Transactions (
+    TransactionID INT NOT NULL,
+    AccountID INT NOT NULL,
+    TransactionDate DATETIME NOT NULL,
+    TransactionType VARCHAR(10) CHECK (TransactionType IN ('Debit', 'Credit')),
+    Amount DECIMAL(18,2) NOT NULL CHECK (Amount > 0),
+    Channel VARCHAR(20) CHECK (Channel IN ('ATM', 'UPI', 'Online', 'Branch')),
+
+    CONSTRAINT PK_Transactions PRIMARY KEY (TransactionID),
+    CONSTRAINT FK_Transactions_Accounts FOREIGN KEY (AccountID)
+        REFERENCES Accounts(AccountID)
+);
+
+
+-- Audit-ready
+-- Channel-wise analysis
+--Debit/Credit enforcement
+
+--Loans Table
+
+--Loan management system (LMS)
+
+CREATE TABLE Loans (
+    LoanID INT NOT NULL,
+    CustomerID INT NOT NULL,
+    LoanType VARCHAR(30) CHECK (LoanType IN ('Home Loan', 'Personal Loan', 'Car Loan')),
+    LoanAmount DECIMAL(18,2) NOT NULL CHECK (LoanAmount > 0),
+    InterestRate DECIMAL(5,2) CHECK (InterestRate BETWEEN 1 AND 25),
+    StartDate DATE NOT NULL,
+    EndDate DATE NOT NULL,
+    LoanStatus VARCHAR(10) CHECK (LoanStatus IN ('Active', 'Closed')),
+
+    CONSTRAINT PK_Loans PRIMARY KEY (LoanID),
+    CONSTRAINT FK_Loans_Customers FOREIGN KEY (CustomerID)
+        REFERENCES Customers(CustomerID),
+    CONSTRAINT CK_Loan_Dates CHECK (EndDate > StartDate)
+);
+
+
+-- Credit & risk analytics,Date validation, Status tracking
+
+--(OPTIONAL BUT HIGHLY RECOMMENDED) Indexes
+
+--Good to have Performance tuning
+
+CREATE INDEX IDX_Accounts_CustomerID ON Accounts(CustomerID);
+CREATE INDEX IDX_Transactions_AccountID ON Transactions(AccountID);
+CREATE INDEX IDX_Transactions_Date ON Transactions(TransactionDate);
+CREATE INDEX IDX_Loans_CustomerID ON Loans(CustomerID);
+
+--Validate Structure
+SELECT 
+    TABLE_NAME, 
+    COLUMN_NAME, 
+    DATA_TYPE 
+FROM INFORMATION_SCHEMA.COLUMNS
+ORDER BY TABLE_NAME;
+
+--Always run in this order:
+--Branches
+--Customers
+--Accounts
+--Transactions
+--Loans
+
+
+/*
+I designed a normalized core-banking style schema with customer master, 
+account master, transaction processing, and loan management tables.I enforced 
+referential integrity using foreign keys and added domain constraints to 
+prevent invalid financial data.
+
+*/
